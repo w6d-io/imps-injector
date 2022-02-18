@@ -1,0 +1,19 @@
+domain: w6d.io
+layout:
+- go.kubebuilder.io/v3
+multigroup: true
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: imps-injector
+repo: github.com/w6d-io/imps-injector
+resources:
+- api:
+    crdVersion: v1
+  controller: true
+  domain: w6d.io
+  group: secret
+  kind: ImagePullSecretInjector
+  path: github.com/w6d-io/imps-injector/apis/secret/v1alpha1
+  version: v1alpha1
+version: "3"
