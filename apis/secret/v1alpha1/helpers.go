@@ -382,7 +382,7 @@ func (in ImagePullSecretInjectorSpec) Matches(ctx context.Context, r client.Clie
 			toolx.InArray(l.Items[i].Namespace, in.Namespaces)) ||
 			(sal.OpNotIn(&l.Items[i]) && sal.OpDoesNotExist(&l.Items[i]) &&
 				sal.OpDoesNotContain(&l.Items[i]) && sal.OpDoesNotStartWith(&l.Items[i])) {
-			log.Info("add sa in list", "name", l.Items[i].Name, "namespace", l.Items[i].Namespace)
+			log.V(3).Info("add sa in list", "name", l.Items[i].Name, "namespace", l.Items[i].Namespace)
 			sal.list.Items = append(sal.list.Items, l.Items[i])
 			continue
 		}

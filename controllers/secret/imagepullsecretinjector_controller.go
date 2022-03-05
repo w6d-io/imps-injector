@@ -18,16 +18,19 @@ package secret
 
 import (
 	"context"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/retry"
 
 	"github.com/google/uuid"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	impsi "github.com/w6d-io/imps-injector/apis/secret/v1alpha1"
 	"github.com/w6d-io/imps-injector/pkg/toolx"
@@ -88,10 +91,11 @@ func (r *ImagePullSecretInjectorReconciler) Reconcile(ctx context.Context, req c
 
 		}
 	}
+
 	return ctrl.Result{}, nil
 }
 
-func (r ImagePullSecretInjectorReconciler) putSecret(
+func (r *ImagePullSecretInjectorReconciler) putSecret(
 	ctx context.Context,
 	injector *impsi.ImagePullSecretInjector,
 	account corev1.ServiceAccount,
@@ -139,5 +143,40 @@ func mapAppend(target map[string]string, source map[string]string) map[string]st
 func (r *ImagePullSecretInjectorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&impsi.ImagePullSecretInjector{}).
+		Watches(
+			&source.Kind{Type: &corev1.ServiceAccount{}},
+			handler.EnqueueRequestsFromMapFunc(func(object client.Object) []reconcile.Request {
+				return r.impsiReferencingServiceAccount(object)
+			}),
+		).
 		Complete(r)
+}
+
+func (r *ImagePullSecretInjectorReconciler) impsiReferencingServiceAccount(obj client.Object) []ctrl.Request {
+	correlationID := uuid.New().String()
+	ctx := context.WithValue(context.Background(), logx.CorrelationID, correlationID)
+	log := logx.WithName(ctx, "impsiReferencingServiceAccount").
+		WithValues("name", obj.GetName(), "namespace", obj.GetNamespace(), "kind", obj.GetObjectKind())
+	sa, ok := obj.(*corev1.ServiceAccount)
+	if !ok {
+		log.Info("object is not a service account")
+	}
+	impsiList := &impsi.ImagePullSecretInjectorList{}
+
+	if err := r.Client.List(ctx, impsiList); err != nil {
+		log.Error(err, "fail to list")
+		return []ctrl.Request{}
+	}
+	var res []ctrl.Request
+	for _, ii := range impsiList.Items {
+		if len(ii.Spec.Match(ctx, r.Client, sa).Items) > 0 {
+			res = append(res, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ii.Name,
+					Namespace: ii.Namespace,
+				},
+			})
+		}
+	}
+	return res
 }

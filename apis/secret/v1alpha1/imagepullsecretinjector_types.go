@@ -58,7 +58,9 @@ type ImagePullSecretInjectorStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+//+kubebuilder:resource:scope=Cluster,shortName=impsi
+//+kubebuilder:printcolumn:name="Count",type="number",priority=1,JSONPath=".status.count"
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC."
 
 // ImagePullSecretInjector is the Schema for the imagepullsecretinjectors API
 type ImagePullSecretInjector struct {

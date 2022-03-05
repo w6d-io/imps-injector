@@ -73,8 +73,7 @@ REF=$(shell git symbolic-ref --quiet HEAD 2> /dev/null)
 VCS_REF=$(shell git rev-parse HEAD)
 GOVERSION=$(shell go version | awk '{ print $3 }')
 BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-GOOS=$(shell uname -s | tr "[:upper:]" "[:lower:]")
-GOARCH=$(shell uname -p)
+#GOARCH=$(shell uname -m)
 
 .PHONY: help
 help: ## Display this help.
