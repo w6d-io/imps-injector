@@ -73,8 +73,7 @@ REF=$(shell git symbolic-ref --quiet HEAD 2> /dev/null)
 VCS_REF=$(shell git rev-parse HEAD)
 GOVERSION=$(shell go version | awk '{ print $3 }')
 BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-GOOS=$(shell uname -s | tr "[:upper:]" "[:lower:]")
-GOARCH=$(shell uname -p)
+LOG_LEVEL=2
 
 .PHONY: help
 help: ## Display this help.
@@ -101,7 +100,7 @@ vet: ## Run go vet against code.
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
-
+	@go tool cover -func cover.out | grep total
 ##@ Build
 
 .PHONY: build
@@ -110,7 +109,7 @@ build: generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run main.go serve
+	go run main.go serve --log-level 2
 
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.

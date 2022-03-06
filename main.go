@@ -45,64 +45,64 @@ var (
 	Serve    = &cobra.Command{
 		Use:   "serve",
 		Short: "run operator",
-		Run: func(cmd *cobra.Command, args []string) {
-			var err error
-			mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-				Scheme:                 scheme,
-				MetricsBindAddress:     viper.GetString(config.ViperKeyMetricsListen),
-				Port:                   9443,
-				HealthProbeBindAddress: viper.GetString(config.ViperKeyProbeListen),
-				LeaderElection:         viper.GetBool(config.ViperKeyLeader),
-				LeaderElectionID:       "imps-injector.w6d.io",
-			})
-			if err != nil {
-				setupLog.Error(err, "unable to start manager")
-				OsExit(1)
-			}
-			if err = (&sc.ImagePullSecretInjectorReconciler{
-				Client: mgr.GetClient(),
-				Scheme: mgr.GetScheme(),
-			}).SetupWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create controller", "controller", "ImagePullSecretInjector")
-				os.Exit(1)
-			}
-			//+kubebuilder:scaffold:builder
-			if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-				setupLog.Error(err, "unable to set up health check")
-				os.Exit(1)
-			}
-			if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-				setupLog.Error(err, "unable to set up ready check")
-				os.Exit(1)
-			}
-
-			setupLog.Info("starting manager")
-			if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-				setupLog.Error(err, "problem running manager")
-				os.Exit(1)
-			}
-		},
+		Run:   ServeFct,
 	}
 	Cmd = &cobra.Command{
 		Use:   "help",
 		Short: "Show this help",
-		Run: func(cmd *cobra.Command, args []string) {
-			log := logx.WithName(context.Background(), "Main.Command")
-			err := cmd.Help()
-			if err != nil {
-				log.Error(err, "cannot show help")
-			}
-		},
+		Run:   Help,
 	}
 	OsExit = os.Exit
 	mgr    manager.Manager
 )
 
+func Help(cmd *cobra.Command, _ []string) {
+	_ = cmd.Help()
+}
+
+func ServeFct(_ *cobra.Command, _ []string) {
+	var err error
+	mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:                 scheme,
+		MetricsBindAddress:     viper.GetString(config.ViperKeyMetricsListen),
+		Port:                   9443,
+		HealthProbeBindAddress: viper.GetString(config.ViperKeyProbeListen),
+		LeaderElection:         viper.GetBool(config.ViperKeyLeader),
+		LeaderElectionID:       "imps-injector.w6d.io",
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		OsExit(1)
+	}
+	if err = (&sc.ImagePullSecretInjectorReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ImagePullSecretInjector")
+		OsExit(1)
+	}
+	//+kubebuilder:scaffold:builder
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up health check")
+		OsExit(1)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up ready check")
+		OsExit(1)
+	}
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		OsExit(1)
+	}
+}
+
 func init() {
 	cobra.OnInitialize(config.Init)
 
 	pflagx.CallerSkip = -1
-	pflagx.Init(Cmd, &config.CfgFile)
+	pflagx.Init(Serve, &config.CfgFile)
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(impsi.AddToScheme(scheme))
