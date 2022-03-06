@@ -102,7 +102,7 @@ func init() {
 	cobra.OnInitialize(config.Init)
 
 	pflagx.CallerSkip = -1
-	pflagx.Init(Cmd, &config.CfgFile)
+	pflagx.Init(Serve, &config.CfgFile)
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(impsi.AddToScheme(scheme))

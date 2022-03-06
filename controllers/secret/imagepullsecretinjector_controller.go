@@ -18,6 +18,11 @@ package secret
 
 import (
 	"context"
+	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -84,15 +89,85 @@ func (r *ImagePullSecretInjectorReconciler) Reconcile(ctx context.Context, req c
 	saList := ii.Spec.Matches(ctx, r.Client, sas)
 	if len(saList.Items) == 0 {
 		log.Info("nothing to do")
-		return ctrl.Result{}, nil
+		//err := r.UpdateStatus(ctx, ii, 0, 0, impsi.StatusSynchronized, "nothing to do")
+		//if err != nil {
+		//	log.Error(err, "update status failed")
+		//}
+		return ctrl.Result{Requeue: false}, nil
 	}
+	var done int32
+	//reQueued := false
 	for _, sa := range saList.Items {
 		if err := r.putSecret(ctx, ii, sa); err != nil {
-
+			log.Error(err, "put secret failed")
+			//reQueued = true
+			if err != nil {
+				log.Error(err, "update status failed. will re-queued")
+			}
 		}
+		done++
 	}
 
-	return ctrl.Result{}, nil
+	var total = int32(len(saList.Items))
+	var state impsi.Status
+	switch {
+	case done < total:
+		state = impsi.StatusPartiallySynchronized
+	case done == 0:
+		state = impsi.StatusDisSynchronized
+	default:
+		state = impsi.StatusSynchronized
+	}
+	if err := r.UpdateStatus(ctx, ii, done, total, state, ""); err != nil {
+		log.Error(err, "update status failed")
+	}
+	log.Info("reconciled")
+	return ctrl.Result{Requeue: false}, nil
+}
+
+// UpdateStatus set the status of tekton resource state
+func (r *ImagePullSecretInjectorReconciler) UpdateStatus(ctx context.Context, ii *impsi.ImagePullSecretInjector, count, total int32, state impsi.Status, message string) error {
+	log := logx.WithName(ctx, "Reconcile.UpdateStatus")
+	var err error
+	log.V(1).Info("update status")
+	key := client.ObjectKeyFromObject(ii)
+	obj := &impsi.ImagePullSecretInjector{}
+	if err := r.Get(ctx, key, obj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		obj.Status.Status = pointer.String(fmt.Sprintf("%d/%d", count, total))
+
+		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+			Type:    string(state),
+			Status:  r.GetStatus(state),
+			Reason:  string(state),
+			Message: message,
+		})
+		if err := r.Status().Update(ctx, obj); err != nil {
+			log.Error(err, "unable to update play status (retry)")
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err, "unable to update play status")
+		return err
+	}
+	return nil
+}
+
+func (r *ImagePullSecretInjectorReconciler) GetStatus(status impsi.Status) metav1.ConditionStatus {
+	switch status {
+	case impsi.StatusDisSynchronized:
+		return metav1.ConditionFalse
+	case impsi.StatusSynchronized:
+		return metav1.ConditionTrue
+	default:
+		return metav1.ConditionUnknown
+	}
 }
 
 func (r *ImagePullSecretInjectorReconciler) putSecret(
@@ -149,6 +224,9 @@ func (r *ImagePullSecretInjectorReconciler) SetupWithManager(mgr ctrl.Manager) e
 				return r.impsiReferencingServiceAccount(object)
 			}),
 		).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 10,
+		}).
 		Complete(r)
 }
 

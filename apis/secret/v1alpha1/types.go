@@ -56,6 +56,7 @@ type SecretConfig struct {
 }
 
 type Operator string
+type Status string
 
 // These are valid values for Operator
 const (
@@ -68,6 +69,10 @@ const (
 	OpDoesNotExist     Operator = "DoesNotExist"
 	OpDoesNotContain   Operator = "DoesNotContain"
 	OpDoesNotStartWith Operator = "DoesNotStartWith"
+
+	StatusSynchronized          Status = "Synchronized"
+	StatusDisSynchronized       Status = "DisSynchronized"
+	StatusPartiallySynchronized Status = "PartiallySynchronized"
 )
 
 type serviceAccountList struct {

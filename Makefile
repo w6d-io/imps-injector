@@ -73,7 +73,7 @@ REF=$(shell git symbolic-ref --quiet HEAD 2> /dev/null)
 VCS_REF=$(shell git rev-parse HEAD)
 GOVERSION=$(shell go version | awk '{ print $3 }')
 BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-#GOARCH=$(shell uname -m)
+LOG_LEVEL=2
 
 .PHONY: help
 help: ## Display this help.
@@ -109,7 +109,7 @@ build: generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run main.go serve
+	go run main.go serve --log-level 2
 
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.

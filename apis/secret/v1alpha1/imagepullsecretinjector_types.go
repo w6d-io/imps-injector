@@ -48,8 +48,8 @@ type ImagePullSecretInjectorSpec struct {
 
 // ImagePullSecretInjectorStatus defines the observed state of ImagePullSecretInjector
 type ImagePullSecretInjectorStatus struct {
-	// Count number of service accounts handled
-	Count *int32 `json:"count"`
+	// Status number of service accounts handled
+	Status *string `json:"status"`
 
 	// Conditions represents the latest available observations of play
 	// +optional
@@ -59,7 +59,7 @@ type ImagePullSecretInjectorStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster,shortName=impsi
-//+kubebuilder:printcolumn:name="Count",type="number",priority=1,JSONPath=".status.count"
+//+kubebuilder:printcolumn:name="Status",type="string",priority=1,JSONPath=".status.status"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC."
 
 // ImagePullSecretInjector is the Schema for the imagepullsecretinjectors API
