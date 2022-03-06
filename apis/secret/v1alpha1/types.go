@@ -20,19 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NamespaceSelector represents the AND of the selectors represented
-// by the scoped-resource selector terms.
-type NamespaceSelector struct {
-	// Operator represents a key's relationship to the value.
-	// Valid operators are In and NotIn. Defaults to In.
-	Operator Operator `json:"operator,omitempty"`
-	// Regex Is the values has to be treated as a regular expression
-	Regex bool `json:"regex,omitempty"`
-	// Value An array of string values. If the operator is In or NotIn,
-	// the values array must be non-empty.
-	Value []string `json:"value,omitempty"`
-}
-
 // ServiceAccountSelector represents the AND of the selectors represented
 // by the scoped-resource selector terms.
 type ServiceAccountSelector struct {
