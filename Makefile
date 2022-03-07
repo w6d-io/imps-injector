@@ -145,7 +145,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 # Formats the code
 .PHONY: format
 format: bin/goimports
-	goimports -w -local gitlab.w6d.io/w6d,github.com/w6d-io apis controllers internal pkg
+	bin/goimports -w -local gitlab.w6d.io/w6d,github.com/w6d-io apis controllers internal pkg
 
 .PHONY: changelog
 changelog:
